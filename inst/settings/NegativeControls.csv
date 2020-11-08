@@ -1,0 +1,36 @@
+targetId,comparatorId,outcomeId,outcomeName,type
+1775640,1775641,77965,Acquired trigger finger,outcome
+1775640,1775641,257007,Allergic rhinitis,outcome
+1775640,1775641,4103640,Amputated foot,outcome
+1775640,1775641,137829,Aplastic anemia,outcome
+1775640,1775641,378424,Astigmatism,outcome
+1775640,1775641,260427,Common cold,outcome
+1775640,1775641,78619,Contusion of knee,outcome
+1775640,1775641,201606,Crohn's disease,outcome
+1775640,1775641,441589,Endocarditis,outcome
+1775640,1775641,73008,Enthesopathy,outcome
+1775640,1775641,4249170,Epicondylitis,outcome
+1775640,1775641,4050747,Fracture of upper limb,outcome
+1775640,1775641,196456,Gallstone,outcome
+1775640,1775641,440674,Gout,outcome
+1775640,1775641,433577,Hammer toe,outcome
+1775640,1775641,441818,Hemangioma,outcome
+1775640,1775641,380688,Hypoglycemic coma,outcome
+1775640,1775641,4344500,Impingement syndrome of shoulder region,outcome
+1775640,1775641,139099,Ingrowing nail,outcome
+1775640,1775641,444132,Injury of knee,outcome
+1775640,1775641,434926,Iridocyclitis,outcome
+1775640,1775641,434203,Late effect of contusion,outcome
+1775640,1775641,438329,Late effect of motor vehicle accident,outcome
+1775640,1775641,440638,Lyme disease,outcome
+1775640,1775641,4209423,Nicotine dependence,outcome
+1775640,1775641,377572,Noise effects on inner ear,outcome
+1775640,1775641,4202045,Postviral fatigue syndrome,outcome
+1775640,1775641,373478,Presbyopia,outcome
+1775640,1775641,4169984,Scar,outcome
+1775640,1775641,443172,"Splinter of face, without major open wound",outcome
+1775640,1775641,81151,Sprain of ankle,outcome
+1775640,1775641,437264,Tobacco dependence syndrome,outcome
+1775640,1775641,4291005,Viral hepatitis,outcome
+1775640,1775641,440193,Wristdrop,outcome
+1775640,1775641,4115367,Wrist joint pain,outcome
