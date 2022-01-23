@@ -203,9 +203,7 @@ connectionDetails <- DatabaseConnector::createConnectionDetails(dbms = "postgres
 	cohortDatabaseSchema <- "scratch.dbo"
 	cohortTable <- "my_study_cohorts"
 	outputFolder <- "c:/TdexaCpds"
-	
-<<<<<<< HEAD
-=======
+
 ```
 
 The last three lines define the `cdmDatabaseSchema`, `cohortDatabaseSchema`, and `outputFolder` variables. We'll use these later to tell R where the data in CDM format live,  where we want to write intermediate tables, and where the intermediate and output files should be stored in the local file system. Note that for Microsoft SQL Server, databaseschemas need to specify both the database and the schema, so for example `cdmDatabaseSchema <- "my_cdm_data.dbo"`.
@@ -218,7 +216,7 @@ setCutoffPercentile <- function(x) {
 }
 setCutoffPercentile(90)
 PerDay <- "'false'"
->>>>>>> 26ec58212c7bb7a8bd0c5abd703db41ea6be0a93
+
 ```
 
 The last three lines define the `cdmDatabaseSchema`, `cohortDatabaseSchema`, and `outputFolder` variables. We'll use these later to tell R where the data in CDM format live,  where we want to write intermediate tables, and where the intermediate and output files should be stored in the local file system. Note that for Microsoft SQL Server, databaseschemas need to specify both the database and the schema, so for example `cdmDatabaseSchema <- "my_cdm_data.dbo"`.
