@@ -221,7 +221,7 @@ PerDay <- "'false'"
 
 The last three lines define the `cdmDatabaseSchema`, `cohortDatabaseSchema`, and `outputFolder` variables. We'll use these later to tell R where the data in CDM format live,  where we want to write intermediate tables, and where the intermediate and output files should be stored in the local file system. Note that for Microsoft SQL Server, databaseschemas need to specify both the database and the schema, so for example `cdmDatabaseSchema <- "my_cdm_data.dbo"`.
 
-We also need to prepare our exposures and outcomes of interest. The drug_era table in the OMOP Common Data Model already contains prespecified cohorts of users at the ingredient level, so we will use that for the exposures. For the outcomes, we want to restrict our analysis only to those outcomes that are recorded in an inpatient setting, so we will need to create a custom cohort table. For this example, we want to include osteoporosis (concept ID 192671) as well as a set of 35 negative controls. Negative controls are defined as those outcomes where there is no evidence that either the target drug (celexocib) or comparator drug (diclofenac) causes the outcome. 
+We also need to prepare our exposures and outcomes of interest. The drug_era table in the OMOP Common Data Model already contains prespecified cohorts of users at the ingredient level, so we will use that for the exposures. For the outcomes, we want to restrict our analysis only to those outcomes that are recorded in an inpatient setting, so we will need to create a custom cohort table. For this example, we want to include osteoporosis (concept ID 80502) as well as a set of 22 negative controls. Negative controls are defined as those outcomes where there is no evidence that either the target drug or comparator drug causes the outcome. 
 
 We create a text file called *SystemicSteroidCohortOutcome.sql* with the following content:
 
@@ -250,29 +250,15 @@ This is parameterized SQL which can be used by the `SqlRender` package. We use p
 
 ```{r eval=FALSE}
 library(SqlRender)
-setwd("C:/Users/estone/Documents/project/SteroidCohortMethod")
-sql <- readSql("inst/sql/sql_server/SystemicSteroidGroupByPercentage.sql")
+setwd("<put your working directory>")
+sql <- readSql("SystemicSteroidCohortOutcome.sql")
 sql <- render(sql,
               cdmDatabaseSchema = cdmDatabaseSchema, 
-              resultsDatabaseSchema = resultsDatabaseSchema,
-              upperPercentileGroupCohortDefID = upperPercentileGroupCohortDefID,
-              lowerPercentileGroupCohortDefID = lowerPercentileGroupCohortDefID,
-              cutoffPercentile = cutoffPercentile,
-              PerDay = PerDay)
+              resultsDatabaseSchema = resultsDatabaseSchema)
 sql <- translate(sql, targetDialect = connectionDetails$dbms)
+
+connection <- connect(connectionDetails)
 executeSql(connection, sql)
-
-# Find cutoff value
-
-  sql <- paste("SELECT AVG(result) AS cutoffValue
-                FROM (
-                  SELECT min(conversion) AS result FROM #targetGroup WHERE percentage >= @cutoffPercentile
-                  UNION ALL
-                  SELECT max(conversion) AS result FROM #targetGroup WHERE percentage < @cutoffPercentile
-                ) AS alias")
-  sql <- render(sql, cutoffPercentile = cutoffPercentile)
-  sql <- translate(sql, targetDialect = connectionDetails$dbms)
-  cutoffValue <- querySql(connection, sql)
 
 ```
 
@@ -283,14 +269,14 @@ In this code, we first read the SQL from the file into memory. In the next line,
 The first group of arguments define the target, comparator, and outcome. Here we demonstrate how to create one set, and add that set to a list:
 
 ```{r eval=FALSE}
-tcos <- createTargetComparatorOutcomes(targetId = upperPercentileGroupCohortDefID,
-                                       comparatorId = lowerPercentileGroupCohortDefID,
+tcos <- createTargetComparatorOutcomes(targetId = 1,
+                                       comparatorId = 2,
                                        outcomeIds = c(80502, 4344387, 75053, 73754, 80004, 139099, 141932, 192367, 193739, 197236, 313459, 319843, 321596, 375292, 380094, 433753, 433811, 436665, 436676, 438134, 440358, 440374, 443617, 443800, 4288310))
 
 targetComparatorOutcomesList <- list(tcos)
 ```
 
-We defined the target to be celecoxib (concept ID 1118084), the comparator to be diclofenac (concept ID 1124300), and the outcomes of interest are GI-bleed (concept ID 192671) and a large number of negative control outcomes. 
+We defined the target to be dexamethasone (concept ID 1518254), the comparator to be prednisolone (concept ID 1550557), and the outcomes of interest are osteoporosis (concept ID 80502) and a large number of negative control outcomes. 
 
 A convenient way to save `targetComparatorOutcomesList` to file is by using the `saveTargetComparatorOutcomesList` function, and we can load it again using the `loadTargetComparatorOutcomesList` function.
 
@@ -299,12 +285,10 @@ A convenient way to save `targetComparatorOutcomesList` to file is by using the 
 The second group of arguments are not specific to a hypothesis of interest, and comprise the majority of arguments. For each function that will be called during the execution of the analyses, a companion function is available that has (almost) the same arguments. For example, for the `trimByPs()` function there is the `createTrimByPsArgs()` function. These companion functions can be used to create the arguments to be used during execution:
 
 ```{r eval=TRUE}
-corticosteroid <- 21602722
+exclusionIds <- "" # put the conceptIDs with high correlation 
 
-covarSettings <- createDefaultCovariateSettings(excludedCovariateConceptIds = corticosteroid,
+covarSettings <- createDefaultCovariateSettings(excludedCovariateConceptIds = exclusionIds,
                                                 addDescendantsToExclude = TRUE)
-#covarSettings <- createCovariateSettings(useDemographicsGender = TRUE,
-#                                         useDemographicsAgeGroup = TRUE)
 
 getDbCmDataArgs <- createGetDbCohortMethodDataArgs(washoutPeriod = 90,
                                                    restrictToCommonPeriod = FALSE,
@@ -407,22 +391,7 @@ cmAnalysis5 <- createCmAnalysis(analysisId = 5,
                                 fitOutcomeModel = TRUE,
                                 fitOutcomeModelArgs = fitOutcomeModelArgs4)
 
-# interactionCovariateIds <- c(8532001, 201826210, 21600960413) # Female, T2DM, concurent use of antithrombotic agents
-# 
-# fitOutcomeModelArgs5 <- createFitOutcomeModelArgs(modelType = "cox",
-#                                                   stratified = TRUE,
-#                                                   interactionCovariateIds = interactionCovariateIds)
-# 
-# cmAnalysis6 <- createCmAnalysis(analysisId = 6,
-#                                 description = "Stratification plus interaction terms",
-#                                 getDbCohortMethodDataArgs = getDbCmDataArgs,
-#                                 createStudyPopArgs = createStudyPopArgs,
-#                                 createPs = TRUE,
-#                                 createPsArgs = createPsArgs,
-#                                 stratifyByPs = TRUE,
-#                                 stratifyByPsArgs = stratifyByPsArgs,
-#                                 fitOutcomeModel = TRUE,
-#                                 fitOutcomeModelArgs = fitOutcomeModelArgs5)
+
 ```
 
 These analyses can be combined in a list:
@@ -433,61 +402,10 @@ cmAnalysisList <- list(cmAnalysis1,
                        cmAnalysis3, 
                        cmAnalysis4, 
                        cmAnalysis5)
-#,                       cmAnalysis6)
 ```
 
 A convenient way to save `cmAnalysisList` to file is by using the `saveCmAnalysisList` function, and we can load it again using the `loadCmAnalysisList` function.
 
-## Target and comparator selection strategies
-
-Often a new-user cohort design is used for comparative effectiveness studies, where the selection of the comparator is part of the hypothesis of interest: 'Does use of drug A lead to an increased risk compared to use of drug B?', where B is the comparator. But sometimes, the design is used for safety assessment: 'Does use of drug A lead to an increased risk?' In this case the comparator is a proxy for the counterfactual of no treatment. For example, we could pick the comparator to be a drug known not to cause the outcome. we can argue that the selection of the comparator then becomes part of the analyses specification, not the hypothesis of interest, and we can have different strategies for selecting a comparator: Do we for instance pick a drug in the same class, or a drug with the same indication?
-
-In the situation where the comparator choice becomes part of the analyses, we can specify multiple comparators per hypothesis of interest by using a list:
-
-```{r eval=TRUE}
-# comparatorIds = list(drugInSameClass = 1124300,
-#                      drugWithSameIndication = 1125315)
-# 
-# tcos <- createTargetComparatorOutcomes(targetId = 1118084,
-#                                      comparatorId = comparatorIds,
-#                                      outcomeIds = 192671)
-# 
-# targetComparatorOutcomesList2 <- list(tcos)
-```
-
-When we specify an analysis, we can then refer to one comparator or another:
-
-```{r eval=TRUE}
-# cmAnalysis1 <- createCmAnalysis(analysisId = 1,
-#                                 description = "Analysis using drug in same class",
-#                                 comparatorType = "drugInSameClass",
-#                                 getDbCohortMethodDataArgs = getDbCmDataArgs,
-#                                 createStudyPopArgs = createStudyPopArgs,
-#                                 createPs = TRUE,
-#                                 createPsArgs = createPsArgs,
-#                                 matchOnPs = TRUE,
-#                                 matchOnPsArgs = matchOnPsArgs,
-#                                 fitOutcomeModel = TRUE,
-#                                 fitOutcomeModelArgs = fitOutcomeModelArgs1)
-# 
-# cmAnalysis2 <- createCmAnalysis(analysisId = 2,
-#                                 description = "Analysis using drug with same indication",
-#                                 comparatorType = "drugWithSameIndication",
-#                                 getDbCohortMethodDataArgs = getDbCmDataArgs,
-#                                 createStudyPopArgs = createStudyPopArgs,
-#                                 createPs = TRUE,
-#                                 createPsArgs = createPsArgs,
-#                                 matchOnPs = TRUE,
-#                                 matchOnPsArgs = matchOnPsArgs,
-#                                 fitOutcomeModel = TRUE,
-#                                 fitOutcomeModelArgs = fitOutcomeModelArgs1)
-# 
-# cmAnalysisList2 <- list(cmAnalysis1, cmAnalysis2)
-```
-
-In this example, the first analysis (analysisID = 1) will use concept 1124300 as comparator, whilst the second analysis analysis (analysisID = 2) will use concept 1125315 as comparator.
-
-The same mechanism can be used to specify types for the targetId.
 
 # Executing multiple analyses
 
@@ -648,31 +566,6 @@ if (file.exists("e:/temp/cohortMethodVignette2/analysisSummary.rds")) {
 }
 ```
 
-Analysis 6 explored interactions with certain variables. The estimates for these interaction terms are also stored in the analysis summary. We can examine whether these estimates are also consistent with the null. In this example we consider the interaction with 'gender = female' (covariate ID 8532001): 
-
-
-```{r eval=FALSE}
-# Analysis 6: Stratification plus interaction terms
-negCons <- analysisSum[analysisSum$analysisId == 6 & analysisSum$outcomeId != 80502, ]
-hoi <-  analysisSum[analysisSum$analysisId == 6 & analysisSum$outcomeId == 80502, ]
-null <- fitNull(negCons$logRrI8532001, negCons$seLogRrI8532001)
-plotCalibrationEffect(logRrNegatives = negCons$logRrI8532001, 
-                      seLogRrNegatives = negCons$seLogRrI8532001, 
-                      logRrPositives = hoi$logRrI8532001, 
-                      seLogRrPositives = hoi$seLogRrI8532001, null)
-```
-```{r echo=FALSE,message=FALSE,eval=TRUE}
-if (file.exists("e:/temp/cohortMethodVignette2/analysisSummary.rds")) {
-  negCons <- analysisSum[analysisSum$analysisId == 6 & analysisSum$outcomeId != 80502, ]
-  hoi <-  analysisSum[analysisSum$analysisId == 6 & analysisSum$outcomeId == 80502, ]
-  null <- fitNull(negCons$logRrI8532001, negCons$seLogRrI8532001)
-  plotCalibrationEffect(logRrNegatives = negCons$logRrI8532001, 
-                        seLogRrNegatives = negCons$seLogRrI8532001, 
-                        logRrPositives = hoi$logRrI8532001, 
-                        seLogRrPositives = hoi$seLogRrI8532001, null)
-}
-```
-
 # Acknowledgments
 
 Considerable work has been dedicated to provide the `CohortMethod` package.
@@ -687,4 +580,4 @@ Further, `CohortMethod` makes extensive use of the `Cyclops` package.
 citation("Cyclops")
 ```
 
-This work is supported in part through the National Science Foundation grant IIS 1251151.
+This work is supported in part through the grant from the Korea Health Technology R&D Project through the Korea Health Industry Development Institute(KHIDI), funded by the ministry of Health & Welfare, Republic of Korea (Grant number: HI19C0218)
