@@ -187,48 +187,28 @@ prepareForEvidenceExplorer("Result<databaseId>.zip", "/shinyData")
 
 
 # Preparation for the experiments
-In `R`, use the following code to install the dependencies:
-```{r}
-install.packages("devtools")
-	library(devtools)
-	install_github("ohdsi/ParallelLogger", ref = "v1.1.1")
-	install_github("ohdsi/SqlRender", ref = "v1.6.3")
-	install_github("ohdsi/DatabaseConnector", ref = "v2.4.1")
-	install_github("ohdsi/OhdsiSharing", ref = "v0.1.3")
-	install_github("ohdsi/FeatureExtraction", ref = "v2.2.5")
-	install_github("ohdsi/CohortMethod", ref = "v3.1.0")
-	install_github("ohdsi/EmpiricalCalibration", ref = "v2.0.0")
-	install_github("ohdsi/MethodEvaluation", ref = "v1.1.0")
-```
 
 We need to tell R how to connect to the server where the data are. `CohortMethod` uses the `DatabaseConnector` package, which provides the `createConnectionDetails` function. Type `?createConnectionDetails` for the specific settings required for the various database management systems (DBMS). For example, one might connect to a PostgreSQL database using this code:
 
 ```{r eval=TRUE}
-connectionDetails <- createConnectionDetails(dbms = "sql server", 
-                                             server = "166.104.103.150", 
-                                             user = "sa", 
-                                             password = "humic1234")
-connection <- connect(connectionDetails)
-
-cdmDatabaseSchema <- "[NHIS_CDM_Sample].[dbo]"
-resultsDatabaseSchema <- "[NHIS_CDM_Sample].[ohdsiresult]"
-outputFolder <- "d:/result"
+connectionDetails <- DatabaseConnector::createConnectionDetails(dbms = "postgresql",
+									server = "<your server IP etc>",
+									user = "<userID>",
+									password = "<password>")
+	
+	# The name of the database schema where the CDM data can be found:
+	cdmDatabaseSchema <- "cdm_synpuf"
+	
+	# The name of the database schema and table where the study-specific cohorts will be instantiated:
+	cohortDatabaseSchema <- "scratch.dbo"
+	cohortTable <- "my_study_cohorts"
+	outputFolder <- "c:/TdexaCpds"
+	
 ```
 
-The last three lines define the `cdmDatabaseSchema`, `resultSchema`, and `outputFolder` variables. We'll use these later to tell R where the data in CDM format live,  where we want to write intermediate tables, and where the intermediate and output files should be stored in the local file system. Note that for Microsoft SQL Server, databaseschemas need to specify both the database and the schema, so for example `cdmDatabaseSchema <- "my_cdm_data.dbo"`.
-```{r}
-setCutoffPercentile <- function(x) {
-  upperPercentileGroupCohortDefID <<- 100 - x
-  lowerPercentileGroupCohortDefID <<- x
-  cutoffPercentile <<- x
-}
-setCutoffPercentile(90)
-PerDay <- "'false'"
-```
+The last three lines define the `cdmDatabaseSchema`, `cohortDatabaseSchema`, and `outputFolder` variables. We'll use these later to tell R where the data in CDM format live,  where we want to write intermediate tables, and where the intermediate and output files should be stored in the local file system. Note that for Microsoft SQL Server, databaseschemas need to specify both the database and the schema, so for example `cdmDatabaseSchema <- "my_cdm_data.dbo"`.
 
-This package analyzes outcomes according to cumulative dose or dose per day. First, determine cutoffpercentile. x in setcutoffPercentile(x) ranges from 0 to 100 and devides the cohort into two groups (upper percentile; 100-x%, lower percentile; x%), this shall be target and comparative groups respectivley. Second, determine PerDay argument. For cumulative dose analysis, put 'false', and for dose per day analysis, put 'true'. In cumulative dose analysis, the dose of steroid prescirbed will calculated and converted to prednisolone dose according to potency of steroids.  
-
-We also need to prepare our exposures and outcomes of interest. The drug_era table in the OMOP Common Data Model already contains prespecified cohorts of users at the ingredient level, so we will use that for the exposures. For the outcomes, we want to restrict our analysis only to those outcomes that are recorded in an inpatient setting, so we will need to create a custom cohort table. For this example, we want to include GI bleed (concept ID 192671) as well as a set of 35 negative controls. Negative controls are defined as those outcomes where there is no evidence that either the target drug (celexocib) or comparator drug (diclofenac) causes the outcome. 
+We also need to prepare our exposures and outcomes of interest. The drug_era table in the OMOP Common Data Model already contains prespecified cohorts of users at the ingredient level, so we will use that for the exposures. For the outcomes, we want to restrict our analysis only to those outcomes that are recorded in an inpatient setting, so we will need to create a custom cohort table. For this example, we want to include osteoporosis (concept ID 192671) as well as a set of 35 negative controls. Negative controls are defined as those outcomes where there is no evidence that either the target drug (celexocib) or comparator drug (diclofenac) causes the outcome. 
 
 We create a text file called *SystemicSteroidCohortOutcome.sql* with the following content:
 
