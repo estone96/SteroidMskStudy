@@ -15,11 +15,6 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-Run CohortMethod Package
-
-```{r, echo = FALSE, message = FALSE, warning = FALSE}
-library(CohortMethod)
-```
 # Introduction
 Glucocorticoids are a class of corticosteroids, which are a class of steroid hormones. Glucocorticoids are corticosteroids that bind to the glucocorticoid receptor that is present in almost every vertebrate animal cell. The name "glucocorticoid" is a portmanteau (glucose + cortex + steroid) and is composed from its role in regulation of glucose metabolism, synthesis in the adrenal cortex, and its steroidal structure (see structure to the right).
 
@@ -82,7 +77,7 @@ There are a two arguments (`excludedCovariateConceptIds`, and `includedCovariate
 1. In `R`, use the following code to install the dependencies:
 
 ```{r}
-install.packages("devtools")
+  install.packages("devtools")
 	library(devtools)
 	install_github("ohdsi/ParallelLogger", ref = "v1.1.1")
 	install_github("ohdsi/SqlRender", ref = "v1.6.3")
